@@ -128,8 +128,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Protected paths — must stay in sync with flue-skill-drift-detector.yml
-          PROTECTED_PATTERN='^(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|tsconfig\.json|flue\.config\.ts|AGENTS\.md|CLAUDE\.md|SKILL_TREE\.md|scripts/build-skill-tree\.sh|\.github/.*|\.agents/.*|\.flue/.*)$'
+          # Allowlist: agents are only permitted to edit files under skills/.
+          # Any path outside this allowlist triggers downgrade-to-issue. This is
+          # a "default deny" guard against the LLM emitting patches that touch
+          # CI config, lockfiles, agent code, or other sensitive paths.
+          ALLOWED_PATTERN='^skills/'
 
           ISSUE_NUMBER="${{ needs.update.outputs.issue_number }}"
           SKILL=$(jq -r '.skill' result.json)
@@ -162,7 +165,11 @@ jobs:
           TOUCHED=$(git diff --name-only HEAD)
           VIOLATION=""
           while IFS= read -r path; do
-            if [[ -n "$path" ]] && [[ "$path" =~ $PROTECTED_PATTERN ]]; then
+            # Skip empty lines
+            [[ -z "$path" ]] && continue
+            # Strip ./ prefix defensively (git diff normalizes, but be explicit)
+            normalized="${path#./}"
+            if ! [[ "$normalized" =~ $ALLOWED_PATTERN ]]; then
               VIOLATION="$path"
               break
             fi
@@ -170,7 +177,7 @@ jobs:
 
           if [[ -n "$VIOLATION" ]]; then
             echo "::warning::Protected file touched ($VIOLATION) — commenting on issue and aborting"
-            PATHS=$(echo "$TOUCHED" | grep -E "$PROTECTED_PATTERN" || true)
+            PATHS=$(echo "$TOUCHED" | grep -v "^skills/" || true)
             gh issue comment "$ISSUE_NUMBER" \
               --body "The Updater proposed changes to protected files: \`$PATHS\`. Manual review needed."
             exit 0

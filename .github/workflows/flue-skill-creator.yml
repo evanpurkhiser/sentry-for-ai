@@ -38,16 +38,20 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLATFORM: ${{ inputs.platform }}
+          PROMPT: ${{ inputs.prompt }}
         run: |
-          payload=$(jq -c -n --arg p "${{ inputs.platform }}" --arg q "${{ inputs.prompt }}" \
+          safe_platform=$(echo "$PLATFORM" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | sed 's/-\+/-/g' | sed 's/^-//;s/-$//')
+          payload=$(jq -c -n --arg p "$PLATFORM" --arg q "${PROMPT:-}" \
             '{platform: $p} + (if $q == "" then {} else {prompt: $q} end)')
           npx flue run skill-creator --target node \
-            --id "creator-${{ inputs.platform }}-$(date +%s)" \
+            --id "creator-${safe_platform}-$(date +%s)" \
             --payload "$payload" \
             > result.json
-          echo "result<<EOF" >> "$GITHUB_OUTPUT"
+          DELIM=$(openssl rand -hex 16)
+          echo "result<<$DELIM" >> "$GITHUB_OUTPUT"
           cat result.json >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "$DELIM" >> "$GITHUB_OUTPUT"
 
           STATUS=$(jq -r '.status' result.json)
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"

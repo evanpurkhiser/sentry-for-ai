@@ -44,9 +44,10 @@ jobs:
             --payload "$payload" \
             > result.json
           # Surface as output for the actuator job
-          echo "result<<EOF" >> "$GITHUB_OUTPUT"
+          DELIM=$(openssl rand -hex 16)
+          echo "result<<$DELIM" >> "$GITHUB_OUTPUT"
           cat result.json >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "$DELIM" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: detector-result

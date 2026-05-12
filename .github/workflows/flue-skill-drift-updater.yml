@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-      issues: read
+      issues: write
     outputs:
       result: ${{ steps.run-updater.outputs.result }}
       has_changes: ${{ steps.diff.outputs.has_changes }}
@@ -39,11 +39,14 @@ jobs:
         id: issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_EVENT_NAME: ${{ github.event_name }}
+          ISSUE_NUMBER_INPUT: ${{ inputs.issue_number }}
+          ISSUE_NUMBER_EVENT: ${{ github.event.issue.number }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ISSUE_NUMBER="${{ inputs.issue_number }}"
+          if [ "$GH_EVENT_NAME" = "workflow_dispatch" ]; then
+            ISSUE_NUMBER="$ISSUE_NUMBER_INPUT"
           else
-            ISSUE_NUMBER="${{ github.event.issue.number }}"
+            ISSUE_NUMBER="$ISSUE_NUMBER_EVENT"
           fi
           gh issue view "$ISSUE_NUMBER" --json number,title,body,url > /tmp/issue.json
           echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
@@ -52,24 +55,27 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.issue_number }}
         run: |
           ISSUE_JSON=$(cat /tmp/issue.json)
           PAYLOAD=$(jq -c '{issue_number: .number, issue_title: .title, issue_body: .body, issue_url: .url}' <<<"$ISSUE_JSON")
           npx flue run skill-drift-updater --target node \
-            --id "updater-${{ steps.issue.outputs.issue_number }}-$(date +%s)" \
+            --id "updater-${ISSUE_NUMBER}-$(date +%s)" \
             --payload "$PAYLOAD" \
             > result.json
-          echo "result<<EOF" >> "$GITHUB_OUTPUT"
+          DELIM=$(openssl rand -hex 16)
+          echo "result<<$DELIM" >> "$GITHUB_OUTPUT"
           cat result.json >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "$DELIM" >> "$GITHUB_OUTPUT"
       - name: Post skip comment if agent skipped
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.issue_number }}
         run: |
           STATUS=$(jq -r '.status' result.json)
           if [ "$STATUS" = "skipped" ]; then
             REASON=$(jq -r '.reason' result.json)
-            gh issue comment "${{ steps.issue.outputs.issue_number }}" \
+            gh issue comment "$ISSUE_NUMBER" \
               --body "Updater skipped: $REASON"
           fi
       - name: Capture patch

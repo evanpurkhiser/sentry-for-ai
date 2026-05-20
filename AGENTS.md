@@ -85,7 +85,16 @@ Sentry MCP server configured at `https://mcp.sentry.dev/mcp`. Two config files e
 
 The `flue/` project root (`package.json`, `tsconfig.json`, `flue.config.ts`,
 `.flue/`) is a TypeScript agent harness for the skill-drift automation system.
-It runs side-by-side with the original `gh-aw` workflows.
+
+Detector now runs per-PR in each SDK repo via wrapper workflows that invoke
+`flue-skill-drift-detector-reusable.yml` in this repo.
+
+Updater and Creator are local CLI tools invoked with:
+- `./scripts/test-flue-updater.sh`
+- `./scripts/test-flue-creator.sh`
+
+The onboarding entry points live at `docs/agent-port/sdk-repo-wrappers/` (19
+wrapper templates) and are documented in `docs/agent-port/sdk-repo-wrappers/README.md`.
 
 **File layout:**
 
@@ -94,13 +103,11 @@ It runs side-by-side with the original `gh-aw` workflows.
   agents/   # skill-drift-detector.ts, skill-drift-updater.ts, skill-creator.ts
   roles/    # detector.md, updater.md, creator.md  (role prompts)
 .github/workflows/
-  flue-skill-drift-detector.yml
-  flue-skill-drift-updater.yml
-  flue-skill-creator.yml
+  flue-skill-drift-detector-reusable.yml
 scripts/
-  test-flue-detector.sh
-  test-flue-updater.sh
-  test-flue-creator.sh
+  test-flue-detector.sh        # smoke test + local debugging
+  test-flue-updater.sh         # local edit + manual PR open
+  test-flue-creator.sh         # local edit + manual PR open
   fixtures/flue-updater-issue.json
 ```
 
@@ -109,8 +116,9 @@ scripts/
 npm ci
 export ANTHROPIC_API_KEY=sk-ant-...
 export GH_TOKEN=ghp_...
-./scripts/test-flue-detector.sh        # costs ~$0.20-1.00
-./scripts/test-flue-creator.sh nuxt   # costs ~$0.50-2.00
+./scripts/test-flue-updater.sh
+./scripts/test-flue-creator.sh
+./scripts/test-flue-detector.sh <skill_name> <sdk_repo> <pr_number>
 ```
 
 ## Skill Tree Navigation

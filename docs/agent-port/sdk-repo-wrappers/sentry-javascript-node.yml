@@ -1,0 +1,34 @@
+name: Sentry Skill Drift
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/**'
+      - 'CHANGELOG*'
+      - '**/test/**'
+      - '**/tests/**'
+      - '**/__tests__/**'
+    paths:
+      - "packages/node/**"
+      - "packages/bun/**"
+      - "packages/deno/**"
+      - "packages/core/**"
+
+jobs:
+  detect-drift:
+    if: github.event.pull_request.merged == true
+    uses: getsentry/sentry-for-ai/.github/workflows/flue-skill-drift-detector-reusable.yml@main
+    with:
+      skill_name: sentry-node-sdk
+      sdk_repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_url: ${{ github.event.pull_request.html_url }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.SENTRY_AI_ANTHROPIC_API_KEY }}
+      SKILL_DRIFT_APP_ID: ${{ secrets.SENTRY_SKILL_DRIFT_APP_ID }}
+      SKILL_DRIFT_APP_PRIVATE_KEY: ${{ secrets.SENTRY_SKILL_DRIFT_APP_PRIVATE_KEY }}
+

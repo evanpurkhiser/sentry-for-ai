@@ -8,7 +8,6 @@ type DetectorPayload = {
   sdk_repo: string;
   pr_number: number;
   pr_url: string;
-  sdk_repo_path: string;
 };
 
 const Action = v.union([
@@ -42,7 +41,6 @@ export default async function ({ init, payload }: FlueContext) {
     sdk_repo,
     pr_number,
     pr_url,
-    sdk_repo_path,
   } = payload as DetectorPayload;
 
   const harness = await init({
@@ -59,7 +57,6 @@ Use this context:
 - sdk_repo: ${sdk_repo}
 - pr_number: ${pr_number}
 - pr_url: ${pr_url}
-- sdk_repo_path: ${sdk_repo_path}
 
 Use this data to decide whether to emit create_pr/create_issue/skip actions.`,
     {

@@ -36,7 +36,6 @@ Given a single merged PR in one SDK repository:
 - `SDK_REPO` (GitHub repo slug)
 - `PR_NUMBER`
 - `PR_URL`
-- `SDK_REPO_PATH` (local checkout path)
 - `SKILL_NAME` (target bundle)
 
 Run:
@@ -45,7 +44,7 @@ Run:
 gh pr diff "$PR_NUMBER" --repo "$SDK_REPO"
 ```
 
-Read any additional context directly from the local SDK checkout at `$SDK_REPO_PATH` when needed.
+If the diff alone is insufficient to assess drift, use `gh api /repos/$SDK_REPO/contents/<path>?ref=<sha>` to read specific files at the merge commit. Do not assume an SDK checkout is available.
 
 Only process this one PR once; do not iterate multiple repos or date windows.
 

@@ -27,7 +27,7 @@ Updater and Creator are no longer CI-coupled CI workflows here. They are local-f
                     ▼
 ┌───────────────────────────────────────────────────────────────┐
 │ Reusable workflow in getsentry/sentry-for-ai                  │
-│ • detect job: checkout SDK + skills repo, run Flue agent,     │
+│ • detect job: checkout skills repo, run Flue agent,       │
 │   output JSON actions array                                    │
 │ • actuate job: apply patches, open PRs/issues in              │
 │   getsentry/sentry-for-ai via GitHub App token                │
@@ -133,7 +133,7 @@ The Updater + Creator agents, roles, scripts, and role prompts are unchanged; on
 
 ## 5. Output schemas
 
-Detector output is now single-skill per run. The per-action `skill` field is removed because each run is already scoped to one `skill_name` input from the wrapper.
+Detector receives a 4-field input payload (`skill_name`, `sdk_repo`, `pr_number`, `pr_url`) and outputs single-skill actions. The per-action `skill` field is removed because each run is already scoped to one `skill_name` input from the wrapper.
 
 Example shape still expected:
 
@@ -237,7 +237,7 @@ Creator is the PRIMARY invocation path for creating new skills in this repo. It 
 Primary invocation is via per-SDK-repo wrapper workflows on merged PRs. For debugging, use the smoke test:
 
 ```bash
-./scripts/test-flue-detector.sh <skill_name> <sdk_repo> <pr_number> [sdk_repo_path]
+./scripts/test-flue-detector.sh <skill_name> <sdk_repo> <pr_number>
 # or
 ./scripts/test-flue-detector.sh --fixture
 ```

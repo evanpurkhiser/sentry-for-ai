@@ -44,26 +44,12 @@ jobs:
       result: ${{ steps.run-detector.outputs.result }}
       status: ${{ steps.run-detector.outputs.status }}
     steps:
-      - name: Get App token (write scope on getsentry/sentry-for-ai)
-        id: app
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.SKILL_DRIFT_APP_ID }}
-          private-key: ${{ secrets.SKILL_DRIFT_APP_PRIVATE_KEY }}
-          owner: getsentry
-          repositories: sentry-for-ai
-
-      - name: Checkout caller SDK repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Checkout skills repo
         uses: actions/checkout@v4
         with:
           repository: getsentry/sentry-for-ai
           path: skills-repo
-          token: ${{ steps.app.outputs.token }}
+          token: ${{ github.token }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
@@ -81,20 +67,18 @@ jobs:
         working-directory: skills-repo
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
           SKILL_NAME: ${{ inputs.skill_name }}
           SDK_REPO: ${{ inputs.sdk_repo }}
           PR_NUMBER: ${{ inputs.pr_number }}
           PR_URL: ${{ inputs.pr_url }}
-          SDK_REPO_PATH: ${{ github.workspace }}
         run: |
           payload=$(jq -c -n \
             --arg skill "$SKILL_NAME" \
             --arg sdk_repo "$SDK_REPO" \
             --argjson pr_number "$PR_NUMBER" \
             --arg pr_url "$PR_URL" \
-            --arg sdk_repo_path "$SDK_REPO_PATH" \
-            '{skill_name:$skill, sdk_repo:$sdk_repo, pr_number:$pr_number, pr_url:$pr_url, sdk_repo_path:$sdk_repo_path}')
+            '{skill_name:$skill, sdk_repo:$sdk_repo, pr_number:$pr_number, pr_url:$pr_url}')
           npx flue run skill-drift-detector --target node \
             --id "drift-${SDK_REPO//\//-}-${PR_NUMBER}" \
             --payload "$payload" \
@@ -164,7 +148,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          RESULT="artifact/result.json"
+          RESULT="${GITHUB_WORKSPACE}/artifact/result.json"
           SUMMARY_PRS=0
           SUMMARY_ISSUES=0
           SUMMARY_SKIPS=0
@@ -208,7 +192,7 @@ jobs:
 
             # Protected files check
             local touched
-            touched=$(git diff --name-only)
+            touched=$( (git diff --name-only HEAD; git ls-files --others --exclude-standard) | sort -u )
             local violation=""
             while IFS= read -r path; do
               [[ -z "$path" ]] && continue

@@ -5,10 +5,9 @@
 # Estimated cost per run: $0.20 - $1.00 depending on PR volume.
 #
 # Usage:
-#   ANTHROPIC_API_KEY=... GH_TOKEN=... ./scripts/test-flue-detector.sh <skill_name> <sdk_repo> <pr_number> [sdk_repo_path]
+#   ANTHROPIC_API_KEY=... GH_TOKEN=... ./scripts/test-flue-detector.sh <skill_name> <sdk_repo> <pr_number>
 #   ANTHROPIC_API_KEY=... GH_TOKEN=... ./scripts/test-flue-detector.sh --fixture
 #
-# NOTE: The default SDK path is the current working directory when not provided.
 #
 # NOTE: The fixture PR is synthetic and may not resolve to a real upstream PR, so the detector
 # may emit skip due to unavailable diff data.
@@ -33,8 +32,8 @@ if [ "${1:-}" = "--fixture" ]; then
   fi
   PAYLOAD=$(jq -c . "$FIXTURE")
 else
-  if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-    echo "Usage: $0 <skill_name> <sdk_repo> <pr_number> [sdk_repo_path]" >&2
+  if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <skill_name> <sdk_repo> <pr_number>" >&2
     echo "   or: $0 --fixture" >&2
     exit 1
   fi
@@ -42,15 +41,13 @@ else
   SKILL_NAME="$1"
   SDK_REPO="$2"
   PR_NUMBER="$3"
-  SDK_REPO_PATH="${4:-$(pwd)}"
 
-  PAYLOAD=$(jq -c \
+  PAYLOAD=$(jq -c -n \
     --arg skill_name "$SKILL_NAME" \
     --arg sdk_repo "$SDK_REPO" \
     --argjson pr_number "$PR_NUMBER" \
     --arg pr_url "https://github.com/${SDK_REPO}/pull/${PR_NUMBER}" \
-    --arg sdk_repo_path "$SDK_REPO_PATH" \
-    '{skill_name:$skill_name,sdk_repo:$sdk_repo,pr_number:$pr_number,pr_url:$pr_url,sdk_repo_path:$sdk_repo_path}')
+    '{skill_name:$skill_name,sdk_repo:$sdk_repo,pr_number:$pr_number,pr_url:$pr_url}')
 fi
 
 echo "=== Flue Detector smoke test ==="

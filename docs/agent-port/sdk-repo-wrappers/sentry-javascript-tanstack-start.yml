@@ -4,15 +4,14 @@ on:
   pull_request:
     types: [closed]
     branches: [develop]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.github/**'
-      - 'CHANGELOG*'
-      - '**/test/**'
-      - '**/tests/**'
-      - '**/__tests__/**'
     paths:
+      - '!**/*.md'
+      - '!docs/**'
+      - '!.github/**'
+      - '!CHANGELOG*'
+      - '!**/test/**'
+      - '!**/tests/**'
+      - '!**/__tests__/**'
       - "packages/tanstackstart-react/**"
       - "packages/core/**"
 

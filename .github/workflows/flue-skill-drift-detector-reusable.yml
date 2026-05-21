@@ -97,10 +97,16 @@ jobs:
             --argjson pr_number "$PR_NUMBER" \
             --arg pr_url "$PR_URL" \
             '{skill_name:$skill, sdk_repo:$sdk_repo, pr_number:$pr_number, pr_url:$pr_url}')
+          # Flue CLI mixes build messages ("[flue] Building:", etc.) into stdout
+          # BEFORE the agent's JSON result. Capture the raw stream, then extract
+          # the trailing JSON object (everything from the first line starting
+          # with '{') into result.json. Raw log is uploaded as a separate
+          # artifact for debugging.
           npx flue run skill-drift-detector --target node \
             --id "drift-${SDK_REPO//\//-}-${PR_NUMBER}" \
             --payload "$payload" \
-            > result.json
+            > flue-output.log
+          sed -n '/^{/,$p' flue-output.log > result.json
           DELIM=$(openssl rand -hex 16)
           echo "result<<$DELIM" >> "$GITHUB_OUTPUT"
           cat result.json >> "$GITHUB_OUTPUT"
@@ -115,7 +121,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: detector-result-${{ inputs.skill_name }}-${{ inputs.pr_number }}
-          path: skills-repo/result.json
+          path: |
+            skills-repo/result.json
+            skills-repo/flue-output.log
           retention-days: 14
 
       - name: Summarize dispatch result

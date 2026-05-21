@@ -24,6 +24,7 @@ export GH_TOKEN
 
 FIXTURE="scripts/fixtures/flue-detector-pr.json"
 OUT=/tmp/flue-detector-result.json
+RAW=/tmp/flue-detector-raw.log
 
 if [ "${1:-}" = "--fixture" ]; then
   if [ ! -f "$FIXTURE" ]; then
@@ -59,13 +60,20 @@ echo
 read -rp "Continue? [y/N] " yn
 [[ "$yn" =~ ^[Yy]$ ]] || { echo "aborted"; exit 0; }
 
+# Flue CLI mixes build messages ("[flue] Building:", etc.) into stdout BEFORE
+# the agent's JSON result. Capture the raw stream, then extract the trailing
+# JSON object (everything from the first line starting with '{').
 npx flue run skill-drift-detector --target node \
   --id "smoketest-detector-$(date +%s)" \
   --payload "$PAYLOAD" \
-  > "$OUT"
+  > "$RAW"
+sed -n '/^{/,$p' "$RAW" > "$OUT"
 
 echo
+echo "=== Raw output: $RAW ==="
+echo "=== Parsed JSON: $OUT ==="
 
+echo
 echo "=== Result ==="
 jq . "$OUT"
 

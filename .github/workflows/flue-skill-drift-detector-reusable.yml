@@ -29,6 +29,24 @@ on:
       SKILL_DRIFT_APP_PRIVATE_KEY:
         description: "GitHub App private key (paired with SKILL_DRIFT_APP_ID)"
         required: true
+  workflow_dispatch:
+    inputs:
+      skill_name:
+        description: "Skill name (e.g. 'sentry-go-sdk')"
+        required: true
+        type: string
+      sdk_repo:
+        description: "SDK repo in 'owner/repo' format"
+        required: true
+        type: string
+      pr_number:
+        description: "Merged PR number to scan"
+        required: true
+        type: number
+      pr_url:
+        description: "Merged PR URL"
+        required: true
+        type: string
 
 concurrency:
   group: flue-skill-drift-detector-${{ inputs.sdk_repo }}-${{ inputs.pr_number }}
@@ -100,9 +118,17 @@ jobs:
           path: skills-repo/result.json
           retention-days: 14
 
+      - name: Summarize dispatch result
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "::group::Detector result"
+          jq . "$GITHUB_WORKSPACE/skills-repo/result.json" || cat "$GITHUB_WORKSPACE/skills-repo/result.json"
+          echo "::endgroup::"
+          echo "::notice::Run via workflow_dispatch — actuate job intentionally skipped. Inspect result.json artifact for proposed actions."
+
   actuate:
     needs: detect
-    if: needs.detect.outputs.status == 'has-actions'
+    if: github.event_name == 'workflow_call' && needs.detect.outputs.status == 'has-actions'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

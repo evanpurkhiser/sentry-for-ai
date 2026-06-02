@@ -31,7 +31,7 @@ Migrate from the default transaction-based trace lifecycle (`static`) to span st
 | Go | Not yet available |
 | Other SDKs | Not yet available |
 
-If the user's project does not use a JavaScript Sentry SDK, inform them that span streaming is currently only available for JavaScript SDKs and stop here.
+If the user's project does not use a supported SDK, inform them that span streaming is currently only available for JavaScript SDKs and stop here.
 
 ---
 
@@ -55,7 +55,7 @@ cat Gemfile 2>/dev/null | grep sentry
 cat go.mod 2>/dev/null | grep sentry
 ```
 
-If a non-JavaScript Sentry SDK is detected, inform the user that span streaming is not yet available for their platform.
+If an unsupported Sentry SDK is detected, inform the user that span streaming is not yet available for their platform.
 
 ### 1.2 Detect JavaScript Environment
 
@@ -146,7 +146,7 @@ Sentry.init({
 });
 ```
 
-Place `spanStreamingIntegration()` **before** `browserTracingIntegration()` in the array.
+The order of `spanStreamingIntegration()` relative to other integrations does not matter.
 
 #### Framework SDKs (Client + Server)
 
@@ -184,7 +184,6 @@ Sentry.init({
 
 // After (streaming mode)
 Sentry.init({
-  traceLifecycle: 'stream',
   beforeSendSpan: Sentry.withStreamedSpan((span) => {
     if (span.name?.includes('/health')) {
       span.name = '[filtered]';
@@ -240,7 +239,12 @@ Remove the `beforeSendTransaction` option from `Sentry.init()` after migrating i
 
 ### 2.4 Configure `ignoreSpans` (Optional)
 
-`ignoreSpans` works in both static and streaming modes. It filters spans at creation time, preventing them from being recorded or sent.
+`ignoreSpans` works in both static and streaming modes, but the filter is evaluated at different points in the span lifecycle:
+
+- **Streaming mode:** evaluated when the span **starts**. Only data available at span start — the span name and the attributes set at creation — is taken into account.
+- **Static mode:** evaluated when the root span **ends**. Only data available at that point — the span name and attributes — is taken into account.
+
+In both modes, a match prevents the span from being recorded or sent. Because matching can run as early as span start (streaming), only the span name and attributes set when the span begins are guaranteed to be available — do not rely on attributes added later in the span's lifetime.
 
 ```js
 Sentry.init({
@@ -408,7 +412,7 @@ Sentry.init({
 
 - [ ] SDK version is `>=10.53.1`
 - [ ] Server configs: added `traceLifecycle: 'stream'`
-- [ ] Browser configs: added `spanStreamingIntegration()` before `browserTracingIntegration()`
+- [ ] Browser configs: added `spanStreamingIntegration()`
 - [ ] `beforeSendSpan` callbacks wrapped with `Sentry.withStreamedSpan()`
 - [ ] `beforeSendSpan` callbacks updated: `description` -> `name`, `data` -> `attributes`
 - [ ] `beforeSendTransaction` logic migrated to `beforeSendSpan` or `ignoreSpans`

@@ -411,7 +411,7 @@ Sentry.init({
 });
 ```
 
-#### Migration Checklist
+#### JavaScript Migration Checklist
 
 - [ ] SDK version is `>=10.53.1`
 - [ ] Server configs: added `traceLifecycle: 'stream'`

@@ -26,20 +26,18 @@ Migrate from the default transaction-based trace lifecycle (`static`) to span st
 | Platform | Status |
 |---|---|
 | JavaScript (Browser, Node.js, Bun, Deno, Cloudflare) | Supported |
-| Python | Not yet available |
+| Python | Supported |
 | Ruby | Not yet available |
 | Go | Not yet available |
 | Other SDKs | Not yet available |
 
-If the user's project does not use a supported SDK, inform them that span streaming is currently only available for JavaScript SDKs and stop here.
+If the user's project does not use a supported SDK, inform them that span streaming is currently only available for supported SDKs and stop here.
 
 ---
 
-## Phase 1: Detect
+## Detect Platform
 
-Identify the user's platform, SDK version, and current tracing configuration.
-
-### 1.1 Detect Platform and SDK
+Identify the user's platform and SDK, then follow the corresponding migration section below.
 
 ```bash
 # Check for JavaScript Sentry packages
@@ -57,7 +55,16 @@ cat go.mod 2>/dev/null | grep sentry
 
 If an unsupported Sentry SDK is detected, inform the user that span streaming is not yet available for their platform.
 
-### 1.2 Detect JavaScript Environment
+- **JavaScript SDK detected** — follow [JavaScript Migration](#javascript-migration)
+- **Python SDK detected** — follow [Python Migration](#python-migration)
+
+---
+
+## JavaScript Migration
+
+> Only follow this section if the detected SDK is JavaScript.
+
+### Detect JavaScript Environment
 
 ```bash
 # Detect if browser, server, or both
@@ -66,7 +73,7 @@ grep -rn "from '@sentry/browser'\|from '@sentry/react'\|from '@sentry/vue'\|from
 grep -rn "from '@sentry/node'\|from '@sentry/bun'\|from '@sentry/deno'\|from '@sentry/cloudflare'" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.mjs" -l 2>/dev/null | head -20
 ```
 
-### 1.3 Find Existing Sentry Config
+### Find Existing Sentry Config
 
 ```bash
 # Find Sentry.init calls
@@ -82,7 +89,7 @@ grep -rn "beforeSendTransaction" --include="*.ts" --include="*.js" --include="*.
 grep -rn "ignoreSpans" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.mjs" -l 2>/dev/null
 ```
 
-### 1.4 Classify Environment
+### Classify Environment
 
 Based on detection results, classify each `Sentry.init` call as:
 
@@ -92,15 +99,11 @@ Based on detection results, classify each `Sentry.init` call as:
 | **Server** | `@sentry/node`, `@sentry/bun`, `@sentry/deno`, `@sentry/cloudflare` | Add `traceLifecycle: 'stream'` |
 | **Framework (both)** | `@sentry/nextjs`, `@sentry/nuxt`, `@sentry/sveltekit`, `@sentry/remix`, `@sentry/astro`, `@sentry/solidstart`, `@sentry/react-router` | Migrate both client and server configs separately |
 
----
-
-## Phase 2: Migrate (JavaScript)
+### Enable Span Streaming
 
 **Prerequisites:** Sentry JavaScript SDK `>=10.53.1` with tracing enabled (`tracesSampleRate` or `tracesSampler` configured).
 
-Apply changes to each `Sentry.init` call. Work through each file identified in Phase 1.
-
-### 2.1 Enable Span Streaming
+Apply changes to each `Sentry.init` call. Work through each file identified above.
 
 #### Server-Side SDKs
 
@@ -160,7 +163,7 @@ Apply the browser migration to client config files and the server migration to s
 | Remix | `entry.client.tsx` | `entry.server.tsx` |
 | Astro | Client-side init | Server-side init |
 
-### 2.2 Migrate `beforeSendSpan`
+### Migrate `beforeSendSpan`
 
 If the user has a `beforeSendSpan` callback, it **must** be wrapped with `Sentry.withStreamedSpan()` to work in streaming mode. Without this wrapper, the SDK falls back to static mode.
 
@@ -209,7 +212,7 @@ Sentry.init({
 
 Returning `null` from `beforeSendSpan` does **not** drop the span — it is ignored and a warning is logged.
 
-### 2.3 Remove or Replace `beforeSendTransaction`
+### Remove or Replace `beforeSendTransaction`
 
 `beforeSendTransaction` has **no effect** in streaming mode. Spans are sent individually, not batched into transactions.
 
@@ -237,7 +240,7 @@ Sentry.init({
 
 Remove the `beforeSendTransaction` option from `Sentry.init()` after migrating its logic.
 
-### 2.4 Configure `ignoreSpans` (Optional)
+### Configure `ignoreSpans` (Optional)
 
 `ignoreSpans` works in both static and streaming modes, but the filter is evaluated at different points in the span lifecycle:
 
@@ -284,7 +287,7 @@ Sentry.init({
 
 When multiple properties are specified in a filter object, **all** must match for the span to be ignored.
 
-### 2.5 Set Up Browser Profiling (Optional)
+### Set Up Browser Profiling (Optional)
 
 When using span streaming in the browser, use the **v2 profiling options** — not the legacy `profilesSampleRate`. The legacy option is deprecated and does not integrate with the span streaming lifecycle.
 
@@ -324,13 +327,9 @@ Sentry.init({
 
 Do **not** mix legacy and v2 options. If `profilesSampleRate` is set, `profileSessionSampleRate` has no effect and the SDK logs a warning.
 
----
+### JavaScript Verification
 
-## Phase 3: Verify
-
-After applying changes, verify the migration works correctly.
-
-### 3.1 Build Check
+#### Build Check
 
 ```bash
 # TypeScript check
@@ -340,7 +339,7 @@ npx tsc --noEmit 2>&1 | head -30
 npm run build 2>&1 | tail -20
 ```
 
-### 3.2 Runtime Verification
+#### Runtime Verification
 
 Instruct the user to verify in their browser devtools or server logs:
 
@@ -348,7 +347,7 @@ Instruct the user to verify in their browser devtools or server logs:
 2. **Check Sentry dashboard**: Spans should appear in the Traces view shortly after they complete, without waiting for the full transaction to finish
 3. **Check for fallback warnings**: If the SDK logs warnings about falling back to static mode, the `beforeSendSpan` callback is likely missing the `withStreamedSpan` wrapper
 
-### 3.3 Common Issues
+#### Common Issues
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -359,11 +358,9 @@ Instruct the user to verify in their browser devtools or server logs:
 | Type errors on `span.data` | `StreamedSpanJSON` uses `attributes` not `data` | Change `span.data` to `span.attributes` in callback |
 | `profileSessionSampleRate` has no effect | Legacy `profilesSampleRate` is also set | Remove `profilesSampleRate` and use only `profileSessionSampleRate` + `profileLifecycle` |
 
----
+### JavaScript Quick Reference
 
-## Quick Reference (JavaScript)
-
-### Minimal Server Setup
+#### Minimal Server Setup
 
 ```js
 import * as Sentry from '@sentry/node';
@@ -375,7 +372,7 @@ Sentry.init({
 });
 ```
 
-### Minimal Browser Setup
+#### Minimal Browser Setup
 
 ```js
 import * as Sentry from '@sentry/browser';
@@ -390,7 +387,7 @@ Sentry.init({
 });
 ```
 
-### Browser Setup with Profiling
+#### Browser Setup with Profiling
 
 ```js
 import * as Sentry from '@sentry/browser';
@@ -408,7 +405,7 @@ Sentry.init({
 });
 ```
 
-### Full Migration Checklist
+#### JavaScript Migration Checklist
 
 - [ ] SDK version is `>=10.53.1`
 - [ ] Server configs: added `traceLifecycle: 'stream'`
@@ -421,3 +418,11 @@ Sentry.init({
 - [ ] (If profiling) Added `browserProfilingIntegration()` to integrations
 - [ ] Build passes with no type errors
 - [ ] Spans visible in Sentry dashboard
+
+---
+
+## Python Migration
+
+> Only follow this section if the detected SDK is Python.
+
+TODO: Add Python migration instructions.

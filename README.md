@@ -59,15 +59,62 @@ Search for **Sentry** in Cursor Settings > Plugins and install.
 
 ### From Source
 
+`main` is the single source of truth for all skills, but it is not itself an
+installable plugin. Each assistant needs the plugin in a slightly different
+shape, so the per-agent plugins are **built** from `main` with the
+`scripts/make-dist-<agent>.sh` scripts. CI runs these on every push and
+publishes each result to its own branch: `dist-claude`, `dist-cursor`, and
+`dist-codex`. Install from a published branch, or build one yourself.
+
+#### Install from a published branch
+
+Claude Code:
+
+```bash
+claude plugin marketplace add getsentry/sentry-for-ai@dist-claude
+claude plugin install sentry@sentry-plugin-marketplace
+```
+
+Codex:
+
+```bash
+codex plugin marketplace add getsentry/sentry-for-ai --ref dist-codex
+codex plugin add sentry@sentry-plugin-marketplace
+```
+
+Cursor: add `getsentry/sentry-for-ai` with the `dist-cursor` branch from Cursor
+Settings > Plugins.
+
+#### Build it yourself
+
+Each `make-dist-<agent>.sh` takes an output directory and writes that agent's
+plugin into it (the Codex build moves the plugin under `plugins/sentry/` and
+swaps the skill tree's `disable-model-invocation` flags for Codex's
+`agents/openai.yaml` policy):
+
 ```bash
 git clone https://github.com/getsentry/sentry-for-ai.git
+cd sentry-for-ai
+scripts/make-dist-codex.sh /tmp/sentry-codex   # or make-dist-claude / make-dist-cursor
+```
 
+Then install from the built directory:
+
+```bash
 # Claude Code
-/install-plugin file:///path/to/sentry-for-ai
+claude plugin marketplace add /tmp/sentry-claude
+claude plugin install sentry@sentry-plugin-marketplace
+
+# Codex
+codex plugin marketplace add /tmp/sentry-codex
+codex plugin add sentry@sentry-plugin-marketplace
 
 # Cursor
-ln -s /path/to/sentry-for-ai ~/.cursor/plugins/local/sentry-for-ai
+ln -s /tmp/sentry-cursor ~/.cursor/plugins/local/sentry
 ```
+
+To build any target locally, run `scripts/make-dist-<agent>.sh <output-dir>`
+(`claude`, `cursor`, or `codex`).
 
 ## Skills
 
@@ -99,6 +146,7 @@ Full platform bundles that scan your project, recommend features, and guide you 
 |-------|-------------|
 | `sentry-setup-ai-monitoring` | Instrument OpenAI, Anthropic, LangChain, Vercel AI, Google GenAI |
 | `sentry-otel-exporter-setup` | Configure OTel Collector with Sentry Exporter for multi-project routing |
+| `sentry-instrumentation-guide` | Decide which signal to reach for — error vs span vs log vs metric, and what to instrument where |
 
 ### Workflow
 

@@ -1,185 +1,30 @@
-# Sentry for AI
+# Sentry for Claude Code
 
-Your AI coding assistant already knows how to write code. This plugin teaches it Sentry — how to set it up, how to find and fix production issues, and how to get the most out of every feature.
+The Sentry plugin for Claude Code. It teaches Claude how to use Sentry: SDK
+setup wizards for any platform, production issue debugging via the Sentry MCP
+server, code review with Sentry context, and monitoring configuration.
 
-Whether you're adding Sentry to a new project, debugging a spike in errors, or configuring alerts, just ask. The plugin gives your assistant the context it needs to do it right.
+> [!IMPORTANT]
+> This branch is generated. It is built from the `main` branch of
+> [getsentry/sentry-for-ai](https://github.com/getsentry/sentry-for-ai) and
+> includes every skill in that library. Do not edit files here; make changes on
+> `main` and they will be rebuilt into this branch.
 
-Supports **Claude Code** and **Cursor**.
-
-## What You Can Do
-
-**Set up Sentry in any project** — SDK setup wizards that detect your stack, recommend the right features, and walk through the full installation. No copy-pasting from docs.
-
-```
-Add Sentry to my Next.js app
-Set up Sentry in my Rails project
-Add error monitoring to my iOS app
-```
-
-**Find and fix production issues** — Query your Sentry environment, triage errors, and fix them in place.
-
-```
-/seer What are the top errors in the last 24 hours?
-/seer Which issues are affecting the most users?
-Fix the recent Sentry errors
-```
-
-**Review code with Sentry context** — Automatically resolve bugs that Sentry or Seer flag in pull request comments.
-
-```
-Review PR #118 and fix the Sentry comments
-```
-
-**Configure monitoring** — Set up alerts, instrument AI/LLM calls, connect OpenTelemetry pipelines.
-
-```
-Create a Slack alert for new high-priority issues
-Monitor my OpenAI calls with Sentry
-Set up OTel Collector with Sentry exporter
-```
-
-## Installation
-
-### Claude Code
-
-```bash
-/install-plugin sentry
-```
-
-Restart Claude Code to activate, then verify:
-
-```bash
-/help           # Should show /seer command
-/mcp            # Should show sentry MCP server
-```
-
-### Cursor
-
-Search for **Sentry** in Cursor Settings > Plugins and install.
-
-### From Source
-
-`main` is the single source of truth for all skills, but it is not itself an
-installable plugin. Each assistant needs the plugin in a slightly different
-shape, so the per-agent plugins are **built** from `main` by the build scripts
-under `plugin-src/<agent>/build.sh`. CI runs these on every push and publishes
-each result to its own branch: `dist-claude`, `dist-cursor`, and `dist-codex`.
-Install from a published branch, or build one yourself.
-
-#### Install from a published branch
-
-Claude Code:
+## Install
 
 ```bash
 claude plugin marketplace add getsentry/sentry-for-ai@dist-claude
 claude plugin install sentry@sentry-plugin-marketplace
 ```
 
-Codex:
+## What's included
 
-```bash
-codex plugin marketplace add getsentry/sentry-for-ai --ref dist-codex
-codex plugin add sentry@sentry-plugin-marketplace
-```
+- The full Sentry skill library (SDK setup wizards, debugging and code-review
+  workflows, feature setup).
+- The `/seer` command for natural-language Sentry queries.
+- The hosted [Sentry MCP server](https://mcp.sentry.dev) for querying your
+  Sentry environment.
 
-Cursor: add `getsentry/sentry-for-ai` with the `dist-cursor` branch from Cursor
-Settings > Plugins.
-
-#### Build it yourself
-
-Each `plugin-src/<agent>/build.sh` takes an output directory and writes that
-agent's plugin into it (the Codex build moves the plugin under `plugins/sentry/`
-and swaps the skill tree's `disable-model-invocation` flags for Codex's
-`agents/openai.yaml` policy):
-
-```bash
-git clone https://github.com/getsentry/sentry-for-ai.git
-cd sentry-for-ai
-plugin-src/codex/build.sh /tmp/sentry-codex   # or plugin-src/claude / plugin-src/cursor
-```
-
-Then install from the built directory:
-
-```bash
-# Claude Code
-claude plugin marketplace add /tmp/sentry-claude
-claude plugin install sentry@sentry-plugin-marketplace
-
-# Codex
-codex plugin marketplace add /tmp/sentry-codex
-codex plugin add sentry@sentry-plugin-marketplace
-
-# Cursor
-ln -s /tmp/sentry-cursor ~/.cursor/plugins/local/sentry
-```
-
-To build any target locally, run `plugin-src/<agent>/build.sh <output-dir>`
-(`claude`, `cursor`, or `codex`).
-
-## Skills
-
-### SDK Setup Wizards
-
-Full platform bundles that scan your project, recommend features, and guide you through setup — error monitoring, tracing, profiling, session replay, logging, and more.
-
-| Skill | Platforms |
-|-------|-----------|
-| `sentry-android-sdk` | Android (Jetpack Compose, Views, OkHttp, Room, Fragment, Timber) |
-| `sentry-cocoa-sdk` | iOS, macOS, tvOS, watchOS, visionOS (Swift, UIKit, SwiftUI) |
-| `sentry-dotnet-sdk` | ASP.NET Core, MAUI, WPF, WinForms, Azure Functions, Blazor, gRPC |
-| `sentry-go-sdk` | Go (net/http, Gin, Echo, Fiber) |
-| `sentry-nestjs-sdk` | NestJS (Express, Fastify, GraphQL, Microservices, WebSocket) |
-| `sentry-nextjs-sdk` | Next.js App Router + Pages Router, Vercel |
-| `sentry-node-sdk` | Node.js, Bun, Deno (Express, Fastify, Koa, Hapi, NestJS, Connect, Bun.serve, Deno.serve) |
-| `sentry-php-sdk` | PHP (Laravel, Symfony) |
-| `sentry-python-sdk` | Python (Django, Flask, FastAPI, Celery, Starlette, AIOHTTP) |
-| `sentry-react-native-sdk` | React Native, Expo managed/bare |
-| `sentry-react-sdk` | React 16+, React Router v5-v7 non-framework mode, TanStack Router, Redux |
-| `sentry-react-router-framework-sdk` | React Router Framework mode (`@sentry/react-router`) |
-| `sentry-tanstack-start-sdk` | TanStack Start React |
-| `sentry-ruby-sdk` | Ruby, Rails, Sinatra, Rack, Sidekiq |
-| `sentry-svelte-sdk` | Svelte, SvelteKit |
-
-### Feature Setup
-
-| Skill | Description |
-|-------|-------------|
-| `sentry-setup-ai-monitoring` | Instrument OpenAI, Anthropic, LangChain, Vercel AI, Google GenAI |
-| `sentry-otel-exporter-setup` | Configure OTel Collector with Sentry Exporter for multi-project routing |
-| `sentry-instrumentation-guide` | Decide which signal to reach for — error vs span vs log vs metric, and what to instrument where |
-
-### Workflow
-
-| Skill | Description |
-|-------|-------------|
-| `sentry-code-review` | Fix bugs detected by Sentry in GitHub PR comments |
-| `sentry-pr-code-review` | Resolve issues flagged by Seer Bug Prediction |
-| `sentry-fix-issues` | Find and fix Sentry issues using MCP |
-| `sentry-create-alert` | Create alerts using the Sentry workflow engine API |
-
-### Slash Commands
-
-| Command | Description |
-|---------|-------------|
-| `/seer <query>` | Ask questions about your Sentry environment in natural language |
-
-## Prerequisites
-
-The plugin configures the [Sentry MCP server](https://mcp.sentry.dev) automatically on install. No extra setup needed.
-
-Some workflow skills require the [GitHub CLI](https://cli.github.com/):
-
-```bash
-brew install gh    # macOS
-gh auth login
-```
-
-## Contributing
-
-Skills follow the [Agent Skills specification](https://agentskills.io). Each skill is a directory with a `SKILL.md` file containing YAML frontmatter and markdown instructions. SDK bundles include a `references/` directory for feature-specific deep dives.
-
-Use the `sentry-sdk-skill-creator` skill to scaffold new SDK bundles — it handles research, writing, and validation.
-
-## License
-
-MIT
+A few router skills are always available; the rest are hidden behind them with
+`disable-model-invocation` and load on demand, so they do not crowd the model's
+context.

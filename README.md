@@ -61,10 +61,10 @@ Search for **Sentry** in Cursor Settings > Plugins and install.
 
 `main` is the single source of truth for all skills, but it is not itself an
 installable plugin. Each assistant needs the plugin in a slightly different
-shape, so the per-agent plugins are **built** from `main` with the
-`scripts/make-dist-<agent>.sh` scripts. CI runs these on every push and
-publishes each result to its own branch: `dist-claude`, `dist-cursor`, and
-`dist-codex`. Install from a published branch, or build one yourself.
+shape, so the per-agent plugins are **built** from `main` by the build scripts
+under `plugin-src/<agent>/build.sh`. CI runs these on every push and publishes
+each result to its own branch: `dist-claude`, `dist-cursor`, and `dist-codex`.
+Install from a published branch, or build one yourself.
 
 #### Install from a published branch
 
@@ -87,15 +87,15 @@ Settings > Plugins.
 
 #### Build it yourself
 
-Each `make-dist-<agent>.sh` takes an output directory and writes that agent's
-plugin into it (the Codex build moves the plugin under `plugins/sentry/` and
-swaps the skill tree's `disable-model-invocation` flags for Codex's
+Each `plugin-src/<agent>/build.sh` takes an output directory and writes that
+agent's plugin into it (the Codex build moves the plugin under `plugins/sentry/`
+and swaps the skill tree's `disable-model-invocation` flags for Codex's
 `agents/openai.yaml` policy):
 
 ```bash
 git clone https://github.com/getsentry/sentry-for-ai.git
 cd sentry-for-ai
-scripts/make-dist-codex.sh /tmp/sentry-codex   # or make-dist-claude / make-dist-cursor
+plugin-src/codex/build.sh /tmp/sentry-codex   # or plugin-src/claude / plugin-src/cursor
 ```
 
 Then install from the built directory:
@@ -113,7 +113,7 @@ codex plugin add sentry@sentry-plugin-marketplace
 ln -s /tmp/sentry-cursor ~/.cursor/plugins/local/sentry
 ```
 
-To build any target locally, run `scripts/make-dist-<agent>.sh <output-dir>`
+To build any target locally, run `plugin-src/<agent>/build.sh <output-dir>`
 (`claude`, `cursor`, or `codex`).
 
 ## Skills

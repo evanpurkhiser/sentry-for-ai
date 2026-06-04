@@ -15,7 +15,7 @@
   "interface": {
     "displayName": "Sentry",
     "shortDescription": "Set up Sentry, debug production issues, and configure monitoring.",
-    "longDescription": "Teach your AI coding assistant how to use Sentry — SDK setup wizards for any platform, production issue debugging via the Sentry MCP server, code review with Sentry context, and monitoring configuration.",
+    "longDescription": "Teach your AI coding assistant how to use Sentry: SDK setup wizards for any platform, production issue debugging via the Sentry MCP server, code review with Sentry context, and monitoring configuration.",
     "developerName": "Sentry",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
